@@ -240,12 +240,9 @@ TEST_F(RPCServerInfoHandlerTest, FutureLedgerCloseTimeReportsZeroAge)
     auto const ledgerHeader = createLedgerHeaderWithUnixTime(kLedgerHash, 30, kNowUnix + 5);
     runNormalRequest(ledgerHeader, [&](auto const& output) {
         ASSERT_TRUE(output);
-        auto const& validated = output.result.value()
-                                    .as_object()
-                                    .at("info")
-                                    .as_object()
-                                    .at("validated_ledger")
-                                    .as_object();
+        auto const& result = output.result.value().as_object();
+        auto const& info = result.at("info").as_object();
+        auto const& validated = info.at("validated_ledger").as_object();
         EXPECT_EQ(validated.at("age").as_uint64(), 0u);
     });
 }
