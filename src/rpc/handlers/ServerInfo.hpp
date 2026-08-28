@@ -10,6 +10,7 @@
 #include "rpc/common/Specs.hpp"
 #include "rpc/common/Types.hpp"
 #include "util/Assert.hpp"
+#include "util/Concepts.hpp"
 #include "util/build/Build.hpp"
 
 #include <boost/json/conversion.hpp>
@@ -42,10 +43,9 @@ namespace rpc {
  * @brief Contains common functionality for handling the `server_info` command
  *
  * @tparam CountersType The type of the counters
- * @tparam ClockType Clock used for output time and ledger age; `now()` returns
- * `std::chrono::system_clock::time_point`
+ * @tparam ClockType Clock used for the output time and the ledger age
  */
-template <typename CountersType, typename ClockType = std::chrono::system_clock>
+template <typename CountersType, util::SomeSystemClock ClockType = std::chrono::system_clock>
 class BaseServerInfoHandler {
     static constexpr auto kBackendCountersKey = "backend_counters";
 

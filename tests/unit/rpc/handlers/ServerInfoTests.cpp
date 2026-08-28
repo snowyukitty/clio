@@ -9,6 +9,7 @@
 #include "util/MockETLServiceTestFixture.hpp"
 #include "util/MockLoadBalancer.hpp"
 #include "util/MockSubscriptionManager.hpp"
+#include "util/TestConstantClock.hpp"
 #include "util/TestObject.hpp"
 
 #include <boost/json/object.hpp>
@@ -21,7 +22,6 @@
 #include <xrpl/protocol/LedgerHeader.h>
 
 #include <chrono>
-#include <cstddef>
 #include <optional>
 #include <string>
 
@@ -33,28 +33,16 @@ namespace {
 
 constexpr auto kLedgerHash = "4BC50C9B0D8515D3EAAE1E74B29A95804346C491EE1A95BF25E4AAB854A6A652";
 constexpr auto kClientIp = "1.1.1.1";
-constexpr auto kNowUnix = 1'700'000'000u;
-constexpr auto kNow = std::chrono::system_clock::time_point{std::chrono::seconds{kNowUnix}};
+constexpr auto kNowUnix = TestConstantClock::kNowUnix;
 
-struct TestClock {
-    static inline std::size_t callCount = 0;
-
-    static std::chrono::system_clock::time_point
-    now()
-    {
-        ++callCount;
-        return kNow;
-    }
-};
-
-using TestServerInfoHandler = BaseServerInfoHandler<MockCounters, TestClock>;
+using TestServerInfoHandler = BaseServerInfoHandler<MockCounters, TestConstantClock>;
 
 }  // namespace
 
 struct RPCServerInfoHandlerTest : HandlerBaseTest, MockLoadBalancerTest, MockCountersTest {
     RPCServerInfoHandlerTest()
     {
-        TestClock::callCount = 0;
+        TestConstantClock::resetCounter();
         backend_->setRange(10, 30);
     }
 
@@ -102,7 +90,9 @@ struct RPCServerInfoHandlerTest : HandlerBaseTest, MockLoadBalancerTest, MockCou
         EXPECT_TRUE(info.contains("time"));
         EXPECT_EQ(
             boost::json::value_to<std::string>(info.at("time")),
-            xrpl::to_string(std::chrono::time_point_cast<std::chrono::microseconds>(kNow))
+            xrpl::to_string(
+                std::chrono::time_point_cast<std::chrono::microseconds>(TestConstantClock::kNow)
+            )
         );
         EXPECT_TRUE(info.contains("uptime"));
 
@@ -182,7 +172,7 @@ TEST_F(RPCServerInfoHandlerTest, NoLedgerHeaderErrorsOutWithInternal)
         auto const err = rpc::makeError(output.result.error());
         EXPECT_EQ(err.at("error").as_string(), "internal");
         EXPECT_EQ(err.at("error_message").as_string(), "Internal error.");
-        EXPECT_EQ(TestClock::callCount, 0u);
+        EXPECT_EQ(TestConstantClock::callCount(), 0u);
     });
 }
 
@@ -208,7 +198,7 @@ TEST_F(RPCServerInfoHandlerTest, NoFeesErrorsOutWithInternal)
         auto const err = rpc::makeError(output.result.error());
         EXPECT_EQ(err.at("error").as_string(), "internal");
         EXPECT_EQ(err.at("error_message").as_string(), "Internal error.");
-        EXPECT_EQ(TestClock::callCount, 0u);
+        EXPECT_EQ(TestConstantClock::callCount(), 0u);
     });
 }
 
@@ -231,7 +221,7 @@ TEST_F(RPCServerInfoHandlerTest, SamplesTheClockOnceForTimeAndAge)
     auto const ledgerHeader = createLedgerHeaderWithUnixTime(kLedgerHash, 30, kNowUnix - 3);
     runNormalRequest(ledgerHeader, [&](auto const& output) {
         ASSERT_TRUE(output);
-        EXPECT_EQ(TestClock::callCount, 1u);
+        EXPECT_EQ(TestConstantClock::callCount(), 1u);
     });
 }
 
