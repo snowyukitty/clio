@@ -29,7 +29,7 @@ public:
     static std::chrono::system_clock::time_point
     now()
     {
-        ++callCount_;
+        ++callCount;
         return kNow;
     }
 
@@ -41,16 +41,16 @@ public:
     static std::size_t
     callCount()
     {
-        return callCount_;
+        return callCount;
     }
 
     /** @brief Set the call count back to zero. */
     static void
     resetCounter()
     {
-        callCount_ = 0;
+        callCount = 0;
     }
 
 private:
-    static inline std::size_t callCount_ = 0;
+    static inline std::size_t callCount = 0;
 };
